@@ -40,22 +40,22 @@ impl Miner {
             );
 
             // Calc cutoff time
-            let cutoff_time = self.get_cutoff(proof, args.buffer_time).await;
+            let cutoff_time = self
+                .get_cutoff(proof, args.buffer_time)
+                .await;
 
             // Run drillx
             let config = get_config(&self.rpc_client).await;
-            let solution = Self::find_hash_par(
-                proof,
-                cutoff_time,
-                args.threads,
-                config.min_difficulty as u32,
-            )
-            .await;
+            let solution = Self::find_hash_par(proof, cutoff_time, args.threads, 20).await;
 
             // Submit most difficult hash
             let mut compute_budget = 500_000;
             let mut ixs = vec![ore_api::instruction::auth(proof_pubkey(signer.pubkey()))];
-            if self.should_reset(config).await && rand::thread_rng().gen_range(0..100).eq(&0) {
+            if self.should_reset(config).await
+                && rand::thread_rng()
+                    .gen_range(0..100)
+                    .eq(&0)
+            {
                 compute_budget += 100_000;
                 ixs.push(ore_api::instruction::reset(signer.pubkey()));
             }
@@ -72,10 +72,7 @@ impl Miner {
     }
 
     async fn find_hash_par(
-        proof: Proof,
-        cutoff_time: u64,
-        threads: u64,
-        min_difficulty: u32,
+        proof: Proof, cutoff_time: u64, threads: u64, min_difficulty: u32,
     ) -> Solution {
         // Dispatch job to each thread
         let progress_bar = Arc::new(spinner::new_progress_bar());
@@ -88,7 +85,9 @@ impl Miner {
                     let mut memory = equix::SolverMemory::new();
                     move || {
                         let timer = Instant::now();
-                        let mut nonce = u64::MAX.saturating_div(threads).saturating_mul(i);
+                        let mut nonce = u64::MAX
+                            .saturating_div(threads)
+                            .saturating_mul(i);
                         let mut best_nonce = nonce;
                         let mut best_difficulty = 0;
                         let mut best_hash = Hash::default();
@@ -109,7 +108,11 @@ impl Miner {
 
                             // Exit if time has elapsed
                             if nonce % 100 == 0 {
-                                if timer.elapsed().as_secs().ge(&cutoff_time) {
+                                if timer
+                                    .elapsed()
+                                    .as_secs()
+                                    .ge(&cutoff_time)
+                                {
                                     if best_difficulty.gt(&min_difficulty) {
                                         // Mine until min difficulty has been met
                                         break;
