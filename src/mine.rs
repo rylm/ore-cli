@@ -189,7 +189,7 @@ impl Miner {
             .saturating_add(60)
             .saturating_sub(buffer_time as i64)
             .saturating_sub(clock.unix_timestamp)
-            .max(0) as u64
+            .max(50) as u64
     }
 }
 
